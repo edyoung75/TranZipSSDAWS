@@ -50,6 +50,8 @@ for s3_obj in response['Contents']:
     # Do your converting, and uploading here
     # object 'Body' is streaming
     df = pd.read_csv(obj['Body'])
+    header = df.head()
+    print(header)
 
     outputFileName = '{}{}.parquet'.format(outputLoc, s3_obj['Key'])
     outputDirLoc = os.path.dirname(outputFileName)
@@ -65,8 +67,13 @@ for s3_obj in response['Contents']:
                 raise
             print('Directories already exist.')
 
+    # Writes out the Parquet File
     df.to_parquet(outputFileName)
 
+    # Access the Parquet file
+    pq = pd.read_parquet(outputFileName, engine='pyarrow')
+    header = pq.head()
+    print(header)
 
     print('Output completed: {}'.format(outputFileName))
 
