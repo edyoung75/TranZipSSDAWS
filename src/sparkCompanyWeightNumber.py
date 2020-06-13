@@ -103,12 +103,11 @@ if __name__ == "__main__":
     # Convert list to RDD
     #rdd = spark.sparkContext.parallelize(output)
 
-    # Create data frame
-    #df = spark.createDataFrame(rdd, schema)
-    print(spDFHeader.schema, file=sys.stdout)
-    spDFHeader.show()
-    print(spDFConsignee.schema, file=sys.stdout)
-    spDFConsignee.show()
+    # Print data frame:
+    # print(spDFHeader.schema, file=sys.stdout)
+    # spDFHeader.show()
+    # print(spDFConsignee.schema, file=sys.stdout)
+    # spDFConsignee.show()
 
     # Join Header with Consignee
     spDFHeaderConsignee = spDFHeader.join(spDFConsignee, spDFHeader.identifier == spDFConsignee.identifier)
@@ -139,12 +138,14 @@ if __name__ == "__main__":
     #     print("%s: %i" % (word, count), file=sys.stdout)
 
     # Output the files to Parquet
-    # bucket = 'ssd-test-dev'
-    # filename = 'testoutput.parquet'
-    # k = "spark/output/" + filename
-    # svrLoc = 's3://ssd-test-dev/spark/output/'
-    # k2 = svrLoc + filename
+    bucket = 'ssd-test-dev'
+    n01Time = time.time()
+    filename = 'testoutput%d.csv' % (n01Time)
+    k = "spark/output/" + filename
+    svrLoc = 's3://ssd-test-dev/spark/output/'
+    k2 = svrLoc + filename
     # df.write.mode('overwrite').parquet(k2)
+    df.write.mode('overwrite').csv(k2)
 
     # End Time
     nEndTime = time.time()  # Time start

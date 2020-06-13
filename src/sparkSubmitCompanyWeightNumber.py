@@ -47,7 +47,7 @@ def lambda_handler(event, context):
     # By CLI: $ spark-submit --master yarn --deploy-mode cluster /home/hadoop/wordcount.py s3a://covid19-lake/static-datasets/csv/state-abv/states_abv.csv
     # step_args is a translation of the CLI into list format
     # The important thing is to have the python file be written in PySpark and be accessible by the cluster.
-    step_args = [
+    step_args2 = [
         '/usr/bin/spark-submit',
         '--master', 'yarn',
         '--deploy-mode', 'client',
@@ -55,6 +55,25 @@ def lambda_handler(event, context):
         's3://ssd-package-s3-dev/ams/2020/202005251500/ams__header_2020__202005251500.csv',
         's3://ssd-package-s3-dev/ams/2020/202005251500/ams__consignee_2020__202005251500.csv'
     ]
+
+    step_args1 = [
+        '/usr/bin/spark-submit',
+        '--master', 'yarn',
+        '--deploy-mode', 'client',
+        CODE_DIR + filename,
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__header_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__consignee_2018__202001290000.csv'
+    ]
+
+    step_args = [
+        '/usr/bin/spark-submit',
+        '--master', 'yarn',
+        '--deploy-mode', 'client',
+        CODE_DIR + filename,
+        's3://ssd-package-s3-dev/ams/2019/ams__header_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__consignee_2019__202001080000.csv'
+    ]
+
     # ActionOnFailure options: 'TERMINATE_JOB_FLOW'|'TERMINATE_CLUSTER'|'CANCEL_AND_WAIT'|'CONTINUE',
     step = {"Name": "what_you_do-" + time.strftime("%Y%m%d-%H:%M"),
             'ActionOnFailure': 'CONTINUE',
@@ -63,7 +82,23 @@ def lambda_handler(event, context):
                 'Args': step_args
             }
             }
+    step1 = {"Name": "what_you_do-" + time.strftime("%Y%m%d-%H:%M"),
+            'ActionOnFailure': 'CONTINUE',
+            'HadoopJarStep': {
+                'Jar': 's3n://elasticmapreduce/libs/script-runner/script-runner.jar',
+                'Args': step_args1
+            }
+            }
+    step2 = {"Name": "what_you_do-" + time.strftime("%Y%m%d-%H:%M"),
+            'ActionOnFailure': 'CONTINUE',
+            'HadoopJarStep': {
+                'Jar': 's3n://elasticmapreduce/libs/script-runner/script-runner.jar',
+                'Args': step_args2
+            }
+            }
     action = conn.add_job_flow_steps(JobFlowId=cluster_id, Steps=[step])
+    action1 = conn.add_job_flow_steps(JobFlowId=cluster_id, Steps=[step1])
+    action2 = conn.add_job_flow_steps(JobFlowId=cluster_id, Steps=[step2])
 #    return "Added step: %s" % (action)
 
     # Returns a dictionary
