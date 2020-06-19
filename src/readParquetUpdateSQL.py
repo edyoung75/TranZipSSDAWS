@@ -139,26 +139,11 @@ psqlTableNameShipper = 'shipper'
 dfTariff = getParquetConcatenate(fileTariffList)
 psqlTableNameTariff = 'tariff'
 
-#df = wr.s3.read_parquet(fileLoc, dataset=True)
-
-# s3 = s3fs.S3FileSystem()
-#
-# pandas_dataframe = pq.ParquetDataset(fileLoc, filesystem=s3)
-# table = pandas_dataframe.read()
-# df = table.to_pandas()
-
-print(dfHeader.count())
-print(dfHeader.head())
-print(dfConsignee.count())
-print(dfConsignee.head())
 
 uri = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(username,password,host,port,dbase)
 alchemyEngine = sqlalchemy.create_engine(uri, pool_recycle=60)
 psqlConnection = alchemyEngine.connect()
 
-# delTableSQL = 'DELETE * FROM '
-
-#tryConnectSQL(dfHeader, psqlTableHeader,psqlConnection,'replace')
 
 try:
     dfHeader.to_sql(psqlTableNameHeader, psqlConnection, if_exists='replace')
@@ -188,41 +173,6 @@ else:
     print("PostgreSQL Table %s has been created successfully." % psqlTableNameTariff)
 finally:
     psqlConnection.close()
-#
-# import psycopg2
-# import pandas as pd
-# def connect(params_dic):
-#     """ Connect to the PostgreSQL database server """
-#     conn = None
-#     try:
-#         # connect to the PostgreSQL server
-#         print('Connecting to the PostgreSQL database...')
-#         conn = psycopg2.connect(**params_dic)
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         print(error)
-#         sys.exit(1)
-#     return conn
-# def single_insert(conn, insert_req):
-#     """ Execute a single INSERT request """
-#     cursor = conn.cursor()
-#     try:
-#         cursor.execute(insert_req)
-#         conn.commit()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         print("Error: %s" % error)
-#         conn.rollback()
-#         cursor.close()
-#         return 1
-#     cursor.close()
-# # Connecting to the database
-# conn = connect(param_dic)
-# # Inserting each row
-# for i in dataframe.index:
-#     query = """
-#     INSERT into emissions(column1, column2, column3) values('%s',%s,%s);
-#     """ % (dataframe['column1'], dataframe['column2'], dataframe['column3'])
-#     single_insert(conn, query)
-# # Close the connection
 
 # End Time
 nEndTime = time.time()  # Time start
