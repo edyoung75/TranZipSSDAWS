@@ -70,7 +70,15 @@ def lambda_handler(event, context):
         CODE_DIR + filename,
         's3://ssd-package-s3-dev/ams/2020/202005251500/ams__header_2020__202005251500.csv',
         's3://ssd-package-s3-dev/ams/2020/202005251500/ams__consignee_2020__202005251500.csv',
-        '2020', password, port, host
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__cargodesc_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__container_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__hazmat_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__hazmatclass_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__marksnumbers_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__notifyparty_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__shipper_2020__202005251500.csv',
+        's3://ssd-package-s3-dev/ams/2020/202005251500/ams__tariff_2020__202005251500.csv',
+        '2020'
     ]
 
     step_args1 = [
@@ -78,9 +86,17 @@ def lambda_handler(event, context):
         '--master', 'yarn',
         '--deploy-mode', 'client',
         CODE_DIR + filename,
-        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__header_2018__202001290000.csv',
-        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__consignee_2018__202001290000.csv',
-        '2018', password, port, host
+        's3://ssd-package-s3-dev/ams/2019/ams__header_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__consignee_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__cargodesc_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__container_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__hazmat_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__hazmatclass_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__marksnumbers_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__notifyparty_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__shipper_2019__202001080000.csv',
+        's3://ssd-package-s3-dev/ams/2019/ams__tariff_2019__202001080000.csv',
+        '2019'
     ]
 
     step_args = [
@@ -88,9 +104,17 @@ def lambda_handler(event, context):
         '--master', 'yarn',
         '--deploy-mode', 'client',
         CODE_DIR + filename,
-        's3://ssd-package-s3-dev/ams/2019/ams__header_2019__202001080000.csv',
-        's3://ssd-package-s3-dev/ams/2019/ams__consignee_2019__202001080000.csv',
-        '2019', password, port, host
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__header_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__consignee_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__cargodesc_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__container_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__hazmat_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__hazmatclass_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__marksnumbers_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__notifyparty_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__shipper_2018__202001290000.csv',
+        's3://ssd-package-s3-dev/ams/2018/202001290000/ams__tariff_2018__202001290000.csv',
+        '2018'
     ]
 
     # ActionOnFailure options: 'TERMINATE_JOB_FLOW'|'TERMINATE_CLUSTER'|'CANCEL_AND_WAIT'|'CONTINUE',
