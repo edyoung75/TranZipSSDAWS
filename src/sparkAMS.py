@@ -1,59 +1,44 @@
 '''
 Insight Data Engineering Project
-Version 0.0.01
+Version 0.0.5
 
 Contact:
 Edmund Young
 dryoung@solidstate.dev
 
 Purpose:
-Python script to process data
+PySpark script to process data
 
-Columns:
-
-CSV output
 
 '''
 
 from __future__ import print_function
-
 import sys
-from operator import add
 from pyspark.sql import SparkSession
-from pyspark.sql import SQLContext
 from pyspark.sql.types import StructField, StructType, StringType, IntegerType, DateType
-from pyspark.sql.functions import when, to_date, datediff, year, month, dayofmonth
-import pyspark.sql.functions as pyF
-import pyspark.sql.functions
-import pandas as pd
+import pyspark.sql.functions as sqlF
 import boto3
-import inspect, os
 import time
-from datetime import datetime
-import re
 
+# Create S3 Client
 s3 = boto3.client('s3')
-#sc = spark.sparkContext
 
 # Start Time
-nStartTime = time.time()   # Time start
+nStartTime = time.time()  # Time start
 print('Start Time:'.format(nStartTime), file=sys.stdout)
 
 
-# FUNCTIONS
+# FUNCTIONS:
+# Change lbs to kg
 def lbstokg(lbs):
-    kilos = lbs/2.2046
+    kilos = lbs / 2.2046
     return kilos
 
-def datediff2(earlydate, latedate):
-    #d1 = datetime.strptime(earlydate, "%Y-%m-%d")
-    #d2 = datetime.strptime(latedate, "%Y-%m-%d")
-    return abs((latedate - earlydate).days)
-
+# Write out the dataframe to disk
 def writetofile(dataframe, bucket, location, foldername, filetype):
-    svrLoc = 's3://{}/{}/{}'.format(bucket,location,foldername)
+    svrLoc = 's3://{}/{}/{}'.format(bucket, location, foldername)
     dataframe.cache()
-    #print(svrLoc)
+    # print(svrLoc)
     if filetype == 'csv':
         dataframe.write.mode('overwrite').csv(svrLoc)
     else:
@@ -75,28 +60,42 @@ exemptionCoDict = {'PERLITE CANADA': 'CA',
                    'CANADIAN THERMOS PRODUCTS INC.': 'CA'
                    }
 
+exPortDist = {
+    'SHANGHAI': 'SHANGHAI,CHINA',
+    'CNTAO': 'QINGDAO'
+}
+
 def countrycode(companyname):
     result = 'US'
     for name, code in exemptionCoDict.items():
         if companyname == name:
-            #print('match')
+            # print('match')
             result = code
-    #print(result)
+    # print(result)
+    return result
+
+def matchvalue(value, checkdict, defaultvalue):
+    result = defaultvalue
+    for name, returnvalue in checkdict.items():
+        if value == name:
+            # print('match')
+            result = returnvalue
+    # print(result)
     return result
 
 # How many lines are being processed
 linesProcessed = 0
 
-# EXECUTE PROCESSING
+# EXECUTE PROCESSING:
 if __name__ == "__main__":
-    if len(sys.argv) != 12:
-        print("Usage: sparkCompanyWeightNumber <file> <file>", file=sys.stderr)
+    if len(sys.argv) != 35:
+        print("Usage: sparkAMS <file x33> <output_file_name>", file=sys.stderr)
         sys.exit(-1)
 
     # Create the Spark Session
-    spark = SparkSession\
-        .builder\
-        .appName("SparkCompanyWeightNumber")\
+    spark = SparkSession \
+        .builder \
+        .appName("SparkCompanyWeightNumber") \
         .getOrCreate()
 
     # SCHEMAS:
@@ -253,6 +252,19 @@ if __name__ == "__main__":
         StructField('harmonized_weight_unit', StringType(), True)
     ])
 
+    schemaBillGen = StructType([
+        StructField('identifier', IntegerType(), True),
+        StructField('master_bol_number', StringType(), True),
+        StructField('house_bol_number', StringType(), True),
+        StructField('sub_house_bol_number', StringType(), True),
+        StructField('voyage_number', StringType(), True),
+        StructField('bill_type_code', StringType(), True),
+        StructField('manifest_number', StringType(), True),
+        StructField('trade_update_date', StringType(), True),
+        StructField('run_date', StringType(), True)
+    ])
+
+    # VARIABLES:
     # File Locations
     csvLocHeader = sys.argv[1]
     csvLocConsignee = sys.argv[2]
@@ -264,209 +276,286 @@ if __name__ == "__main__":
     csvLocNotifyParty = sys.argv[8]
     csvLocShipper = sys.argv[9]
     csvLocTariff = sys.argv[10]
-    filename = sys.argv[11]
+    csvLocBillGen = sys.argv[11]
+    csvLocHeader1 = sys.argv[12]
+    csvLocConsignee1 = sys.argv[13]
+    csvLocCargoDesc1 = sys.argv[14]
+    csvLocContainer1 = sys.argv[15]
+    csvLocHazmat1 = sys.argv[16]
+    csvLocHazmatClass1 = sys.argv[17]
+    csvLocMarksNumbers1 = sys.argv[18]
+    csvLocNotifyParty1 = sys.argv[19]
+    csvLocShipper1 = sys.argv[20]
+    csvLocTariff1 = sys.argv[21]
+    csvLocBillGen1 = sys.argv[22]
+    csvLocHeader2 = sys.argv[23]
+    csvLocConsignee2 = sys.argv[24]
+    csvLocCargoDesc2 = sys.argv[25]
+    csvLocContainer2 = sys.argv[26]
+    csvLocHazmat2 = sys.argv[27]
+    csvLocHazmatClass2 = sys.argv[28]
+    csvLocMarksNumbers2 = sys.argv[29]
+    csvLocNotifyParty2 = sys.argv[30]
+    csvLocShipper2 = sys.argv[31]
+    csvLocTariff2 = sys.argv[32]
+    csvLocBillGen2 = sys.argv[33]
+    filename = sys.argv[34]
 
+    # Database
     dbname = 'testamsdb'
 
-    #csvLocHeader = 's3://ssd-package-s3-dev/ams/2020/202005251500/ams__header_2020__202005251500.csv'
-    #csvLocConsignee = 's3://ssd-package-s3-dev/ams/2020/202005251500/ams__consignee_2020__202005251500.csv'
+    # FUNCTIONS:
+    def readAndUnion(filelist, tschema):
+        df = spark.createDataFrame([], schema=tschema)
+        for file in filelist:
+            df1 = spark.read.csv(file, schema=tschema)
+            df = df.union(df1)
+        return df
 
-    # Read the files
-    spDFHeader = spark.read.csv(csvLocHeader, schema=schemaHeader)
+    # READ FILES AND CREATE DATAFRAME:
+    # Header File
+    tlist = [csvLocHeader, csvLocHeader1, csvLocHeader2]
+    spDFHeader = readAndUnion(tlist, schemaHeader)
     lineLength = spDFHeader.count()
     linesProcessed += lineLength
-    print('File {} has {} rows'.format(csvLocHeader,lineLength))
-    #spDFHeader.show(n=100)
-    spDFConsignee = spark.read.csv(csvLocConsignee, schema=schemaConsignee)
+    print('File {} has {} rows'.format(csvLocHeader, lineLength))
+
+    # Consignee File
+    tlist = [csvLocConsignee, csvLocConsignee1, csvLocConsignee2]
+    spDFConsignee = readAndUnion(tlist, schemaConsignee)
     lineLength = spDFConsignee.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocConsignee, lineLength))
-    spDFCargoDesc = spark.read.csv(csvLocCargoDesc, schema=schemaCargoDesc)
+
+    # Cargo Description File
+    tlist = [csvLocCargoDesc, csvLocCargoDesc1, csvLocCargoDesc2]
+    spDFCargoDesc = readAndUnion(tlist, schemaCargoDesc)
     lineLength = spDFCargoDesc.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocCargoDesc, lineLength))
-    spDFContainer = spark.read.csv(csvLocContainer, schema=schemaContainer)
+
+    # Container File
+    tlist = [csvLocContainer, csvLocContainer1, csvLocContainer2]
+    spDFContainer = readAndUnion(tlist, schemaContainer)
     lineLength = spDFContainer.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocContainer, lineLength))
-    spDFHazmat = spark.read.csv(csvLocHazmat, schema=schemaHazmat)
+
+    # Hazmat File
+    tlist = [csvLocHazmat, csvLocHazmat1, csvLocHazmat2]
+    spDFHazmat = readAndUnion(tlist, schemaHazmat)
     lineLength = spDFHazmat.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocHazmat, lineLength))
-    spDFHazmatClass = spark.read.csv(csvLocHazmatClass, schema=schemaHazmatClass)
+
+    # Hazmat Class File
+    tlist = [csvLocHazmatClass, csvLocHazmatClass1, csvLocHazmatClass2]
+    spDFHazmatClass = readAndUnion(tlist, schemaHazmatClass)
     lineLength = spDFHazmatClass.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocHazmatClass, lineLength))
-    spDFMarksNumbers = spark.read.csv(csvLocMarksNumbers, schema=schemaMarksNumber)
+
+    # Marks and Numbers on Container File
+    tlist = [csvLocMarksNumbers, csvLocMarksNumbers1, csvLocMarksNumbers2]
+    spDFMarksNumbers = readAndUnion(tlist, schemaMarksNumber)
     lineLength = spDFMarksNumbers.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocMarksNumbers, lineLength))
-    spDFNotifyParty = spark.read.csv(csvLocNotifyParty, schema=schemaNotifyParty)
+
+    # Notify Party File
+    tlist = [csvLocNotifyParty, csvLocNotifyParty1, csvLocNotifyParty2]
+    spDFNotifyParty = readAndUnion(tlist, schemaNotifyParty)
     lineLength = spDFNotifyParty.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocNotifyParty, lineLength))
-    spDFShipper = spark.read.csv(csvLocShipper, schema=schemaShipper)
+
+    # Shipper File
+    tlist = [csvLocShipper, csvLocShipper1, csvLocShipper2]
+    spDFShipper = readAndUnion(tlist, schemaShipper)
     lineLength = spDFShipper.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocShipper, lineLength))
-    spDFTariff = spark.read.csv(csvLocTariff, schema=schemaTariff)
+
+    # Tariff File
+    tlist = [csvLocTariff, csvLocTariff1, csvLocTariff2]
+    spDFTariff = readAndUnion(tlist, schemaTariff)
     lineLength = spDFTariff.count()
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocTariff, lineLength))
 
-    # DATA CLEANUP
-    # Header file
-    spDFHeader = spDFHeader.filter(pyF.col('identifier').isNotNull())
+    # Bill Generated File
+    tlist = [csvLocBillGen, csvLocBillGen1, csvLocBillGen2]
+    spDFBillGen = readAndUnion(tlist, schemaBillGen)
+    lineLength = spDFBillGen.count()
+    linesProcessed += lineLength
+    print('File {} has {} rows'.format(csvLocBillGen, lineLength))
+
+    # DATA CLEANUP:
+    # Header Clean Up
     lineLength = spDFHeader.count()
-    print('header line count {}'.format(lineLength))
-    #writetofile(spDFHeader, 'ssd-test-dev', 'spark/header', 'ports', 'csv')
-    spDFHeader = spDFHeader.withColumn('weight', pyF.when(spDFHeader['weight_unit'] == 'Pounds', lbstokg(spDFHeader['weight'])).otherwise(spDFHeader['weight']))
-    spDFHeader = spDFHeader.withColumn('weight_unit', pyF.when(spDFHeader['weight_unit'] == 'Pounds', 'Kilograms').otherwise(spDFHeader['weight_unit']))
-    spDFHeader = spDFHeader.withColumn('estimated_arrival_date', pyF.to_date('estimated_arrival_date', 'yyyy-MM-dd').cast(DateType()))
-    spDFHeader = spDFHeader.withColumn('actual_arrival_date', pyF.to_date('actual_arrival_date', 'yyyy-MM-dd').cast(DateType()))
-    spListHeaderPorts = spDFHeader.select('foreign_port_of_lading').distinct().collect()
-    spDFHeaderPorts = spark.createDataFrame(spListHeaderPorts, StructType([StructField('ports', StringType(), True)]))
-    # writetofile(spDFHeaderPorts, 'ssd-test-dev', 'spark/consignee', 'ports', 'csv')
-    # print('wrote out port csv')
+    spDFHeader = spDFHeader.withColumn('weight',
+                                       sqlF.when(spDFHeader['weight_unit'] == 'Pounds',
+                                                lbstokg(spDFHeader['weight'])).otherwise(spDFHeader['weight'])
+                                       )
+    spDFHeader = spDFHeader.withColumn('weight_unit',
+                                       sqlF.when(spDFHeader['weight_unit'] == 'Pounds',
+                                                'Kilograms').otherwise(spDFHeader['weight_unit'])
+                                       )
+    spDFHeader = spDFHeader.withColumn('estimated_arrival_date',
+                                       sqlF.to_date('estimated_arrival_date', 'yyyy-MM-dd').cast(DateType())
+                                       )
+    spDFHeader = spDFHeader.withColumn('actual_arrival_date',
+                                       sqlF.to_date('actual_arrival_date', 'yyyy-MM-dd').cast(DateType())
+                                       )
+
     # Append the date difference between the Arrival date and the Estimate date
-    spDFHeader = spDFHeader.withColumn('date_diff', datediff(spDFHeader['actual_arrival_date'], spDFHeader['estimated_arrival_date']))
+    spDFHeader = spDFHeader.withColumn('place_of_receipt',
+                                       sqlF.when((spDFHeader['place_of_receipt'] == 'CNTAO') | (spDFHeader['place_of_receipt'] == 'SHANGHAI'),
+                                                 matchvalue('place_of_receipt',
+                                                            exPortDist,
+                                                            'place_of_receipt')).otherwise(spDFHeader['place_of_receipt'])
+                                       )
+    spDFHeader = spDFHeader.withColumn('date_diff',
+                                       sqlF.datediff(spDFHeader['actual_arrival_date'],
+                                                spDFHeader['estimated_arrival_date'])
+                                       )
     lineLength = spDFHeader.count()
-    print('Writing the header files... {}'.format(lineLength))
+
+    # Consignee Clean Up
+    spDFConsignee = spDFConsignee.withColumn('country_code',
+                                             sqlF.when(sqlF.col('country_code').isNull(),
+                                                       countrycode('consignee_name')).otherwise(spDFConsignee['country_code'])
+                                             )
+
+    # Bill Gen Clean Up
+    spDFBillGen = spDFBillGen.withColumn('trade_update_date',
+                                       sqlF.to_date('trade_update_date', 'yyyy-MM-dd').cast(DateType())
+                                         )
+    spDFBillGen = spDFBillGen.withColumn('run_date',
+                                         sqlF.to_date('run_date', 'yyyy-MM-dd').cast(DateType())
+                                         )
+
+    # SUMMARIZE DATA:
+    # Summarize Month/Weight
+    spDFSumMonthWeight = spDFHeader.groupby(
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+    ).agg(
+        sqlF.sum('weight').alias('sum_weight'),
+        sqlF.mean('weight').alias('average_weight'),
+        sqlF.max('weight').alias('max_weight'),
+        sqlF.min('weight').alias('min_weight')
+    )
+    spDFSumMonthWeight.show()
+
+    # Summarize Port/Weight
+    spDFSumPortWeight = spDFHeader.groupby(
+        'place_of_receipt',
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+    ).agg(
+        sqlF.sum('weight').alias('sum_weight'),
+        sqlF.mean('weight').alias('average_weight'),
+        sqlF.max('weight').alias('max_weight'),
+        sqlF.min('weight').alias('min_weight')
+    )
+    spDFSumPortWeight.show()
+
+    # Join Header with Consignee, Cargo Description, Shipper
+    spDFHeaderConsignee = spDFHeader.join(spDFConsignee,
+                                          on=['identifier'],
+                                          how='outer')
+    spDFHeaderConsigneeCargoDesc = spDFHeaderConsignee.join(spDFCargoDesc,
+                                                            on=['identifier'],
+                                                            how='outer')
+    spDFHeaderConsigneeCargoDescShipper = spDFHeaderConsigneeCargoDesc.join(spDFShipper,
+                                                                            on=['identifier'],
+                                                                            how='outer')
+    #spDFHeaderConsigneeCargoDescShipper.show()
+
+    # Summarize Consignee/Weight
+    spDFSumConsigneeWeight = spDFHeaderConsigneeCargoDescShipper.groupby(
+        'consignee_name',
+        'place_of_receipt',
+        'notify_party_name',
+        'description_text',
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+    ).agg(
+        sqlF.sum('weight').alias('sum_weight'),
+        sqlF.mean('weight').alias('average_weight'),
+        sqlF.max('weight').alias('max_weight'),
+        sqlF.min('weight').alias('min_weight')
+    )
+    spDFSumConsigneeWeight.show()
+
+    # WRITE OUT FILES
+    # Header Write Out
+    # print('Writing the header files... {}'.format(lineLength))
+    spDFHeader = spDFHeader.filter(sqlF.col('identifier').isNotNull())
     spDFHeader.coalesce(1)
     writetofile(spDFHeader, 'ssd-test-dev', 'spark/header', filename, 'parquet')
 
-    # Consignee File
-    spDFConsignee = spDFConsignee.filter(pyF.col('identifier').isNotNull())
-    spDFConsignee = spDFConsignee.withColumn('country_code', pyF.when(pyF.col('country_code').isNull(), countrycode('consignee_name')).otherwise(spDFConsignee['country_code']))
-    #spDFConsignee.show()
+    # Consignee Write Out
+    spDFConsignee = spDFConsignee.filter(sqlF.col('identifier').isNotNull())
     writetofile(spDFConsignee, 'ssd-test-dev', 'spark/consignee', filename, 'parquet')
 
-    # Cargo Description
-    spDFCargoDesc = spDFCargoDesc.filter(pyF.col('identifier').isNotNull())
-    # tfilter = spDFConsignee.filter(pyF.col('country_code').isNull())
-    # tfilter.show()
-    # print('trying to clean up the country code...')
-    # tfilter = spDFConsignee.filter(pyF.col('country_code').isNull())
-    # tfilter.show()
+    # Cargo Write Out
+    spDFCargoDesc = spDFCargoDesc.filter(sqlF.col('identifier').isNotNull())
     spDFCargoDesc.coalesce(1)
     writetofile(spDFCargoDesc, 'ssd-test-dev', 'spark/cargodesc', filename, 'parquet')
 
-    # Container information
-    spDFContainer = spDFContainer.filter(pyF.col('identifier').isNotNull())
+    # Container Write Out
+    spDFContainer = spDFContainer.filter(sqlF.col('identifier').isNotNull())
     spDFContainer.coalesce(1)
     writetofile(spDFContainer, 'ssd-test-dev', 'spark/container', filename, 'parquet')
 
-    # Hazmat information
-    spDFHazmat = spDFHazmat.filter(pyF.col('identifier').isNotNull())
+    # Hazmat Write Out
+    spDFHazmat = spDFHazmat.filter(sqlF.col('identifier').isNotNull())
     spDFHazmat.coalesce(1)
     writetofile(spDFHazmat, 'ssd-test-dev', 'spark/hazmat', filename, 'parquet')
 
-    # Hazmat Class information
-    spDFHazmatClass = spDFHazmatClass.filter(pyF.col('identifier').isNotNull())
+    # Hazmat Class Write OUt
+    spDFHazmatClass = spDFHazmatClass.filter(sqlF.col('identifier').isNotNull())
     spDFHazmatClass.coalesce(1)
     writetofile(spDFHazmatClass, 'ssd-test-dev', 'spark/hazmatclass', filename, 'parquet')
 
-    # Marks Numbers on Container information
-    spDFMarksNumbers = spDFMarksNumbers.filter(pyF.col('identifier').isNotNull())
+    # Marks Numbers on Container Write Out
+    spDFMarksNumbers = spDFMarksNumbers.filter(sqlF.col('identifier').isNotNull())
     spDFMarksNumbers.coalesce(1)
     writetofile(spDFMarksNumbers, 'ssd-test-dev', 'spark/marksnumbers', filename, 'parquet')
 
-    # Notify Party information
-    spDFNotifyParty = spDFNotifyParty.filter(pyF.col('identifier').isNotNull())
+    # Notify Party Write Out
+    spDFNotifyParty = spDFNotifyParty.filter(sqlF.col('identifier').isNotNull())
     spDFNotifyParty.coalesce(1)
     writetofile(spDFNotifyParty, 'ssd-test-dev', 'spark/notifyparty', filename, 'parquet')
 
-    # Shipper information
-    spDFShipper = spDFShipper.filter(pyF.col('identifier').isNotNull())
+    # Shipper Write Out
+    spDFShipper = spDFShipper.filter(sqlF.col('identifier').isNotNull())
     spDFShipper.coalesce(1)
     writetofile(spDFShipper, 'ssd-test-dev', 'spark/shipper', filename, 'parquet')
 
-    # Tariff information
-    spDFTariff = spDFTariff.filter(pyF.col('identifier').isNotNull())
+    # Tariff Write Out
+    spDFTariff = spDFTariff.filter(sqlF.col('identifier').isNotNull())
     spDFTariff.coalesce(1)
     writetofile(spDFTariff, 'ssd-test-dev', 'spark/tariff', filename, 'parquet')
 
+    # Bill Generated Write Out
+    spDFBillGen = spDFBillGen.filter(sqlF.col('identifier').isNotNull())
+    spDFBillGen.coalesce(1)
+    writetofile(spDFBillGen, 'ssd-test-dev', 'spark/billgen', filename, 'parquet')
 
-    #spDFNoConsigneeName = spDFConsignee.filter(pyF.col('consignee_name').isNull() & pyF.col('identifier').isNotNull())
-    #spDFNoConsigneeName.show()
-    #lineLength = spDFNoConsigneeName.count()
-    #print('Dataset {} has {} rows'.format('NoConsigneeNameDF', lineLength))
-    #spDFNoCountry = spDFConsignee.select(pyF.col('country_code').isNull())
-    # spDFNoCountry = spDFConsignee.filter(pyF.col('country_code').isNull() & pyF.col('consignee_name').isNotNull())
-    #spDFNoCountry.show()
-    #spListNoCountryCollection = spDFNoCountry.collect()
-    #spDFNoCountryCollection = spark.createDataFrame(spListNoCountryCollection, schemaConsignee)
-    # Show Content Output
-    #spDFHeader.show(n=100)
+    # Summary Weight/Month Write Out
+    writetofile(spDFSumMonthWeight, 'ssd-test-dev', 'spark/summonthweight', filename, 'parquet')
 
-    #lines = spark.read.text(csvLocHeader).rdd.map(lambda r: r[0])
-    # counts = lines.flatMap(lambda x: x.split(' ')) \
-    #               .map(lambda x: (x, 1)) \
-    #               .reduceByKey(add)
-    # output = counts.collect()
+    # Summary Port/Weight/Year Write Out
+    writetofile(spDFSumPortWeight, 'ssd-test-dev', 'spark/sumportweight', filename, 'parquet')
 
-    # Convert list to RDD
-    #rdd = spark.sparkContext.parallelize(output)
-
-    # Print data frame:
-    # print(spDFHeader.schema, file=sys.stdout)
-    # spDFHeader.show()
-    # print(spDFConsignee.schema, file=sys.stdout)
-    # spDFConsignee.show()
-
-
-    # # Join Header with Consignee
-    # spDFHeaderConsignee = spDFHeader.join(spDFConsignee, on=['identifier'], how='inner')
-    # lineLength = spDFHeaderConsignee.count()
-    # print('Dataset {} has {} rows'.format('header_consignee', lineLength))
-    # # sqlContext.sql("""
-    # #     SELECT MONTH(timestamp) AS month, SUM(value) AS values_sum
-    # #     FROM df
-    # #     GROUP BY MONTH(timestamp)""")
-    #
-    # counts = spDFHeaderConsignee.rdd.map(lambda r: r['consignee_name'])\
-    #     .map(lambda x: (x, 1))\
-    #     .reduceByKey(add)
-    #
-    # output = counts.collect()
-    # # Convert list to RDD
-    # rddHeaderConsigneeCounts = spark.sparkContext.parallelize(output)
-    #
-    # schemaHeaderConsigneeCounts = StructType([
-    #     StructField('company', StringType(), True),
-    #     StructField('package_counts', IntegerType(), True)
-    # ])
-    #
-    # # Create data frame
-    # df = spark.createDataFrame(rddHeaderConsigneeCounts, schemaHeaderConsigneeCounts)
-    # #df.sort('package_counts')
-    # lineLength = df.count()
-    # print('Dataframe {} has {} rows'.format('header_consignee counts', lineLength))
-    # df.show()
-    #
-    # # counts = lines.flatMap(lambda x: x.split(' ')) \
-    # #               .map(lambda x: (x, 1)) \
-    # #               .reduceByKey(add)
-    # # output = counts.collect()
-    #
-    # # for (word, count) in output:
-    # #     print("%s: %i" % (word, count), file=sys.stdout)
-    #
-    # # Output the files to Parquet
-    # # bucket = 'ssd-test-dev'
-    # n01Time = time.time()
-    # filename = 'testoutput%d.parquet' % (n01Time)
-    # #filename = 'testoutput%d.csv' % (n01Time)
-    # # k = "spark/output/" + filename
-    # # svrLoc = 's3://ssd-test-dev/spark/output/'
-    # # k2 = svrLoc + filename
-    # # df.write.mode('overwrite').parquet(k2)
-    # #df.write.mode('overwrite').csv(k2)
-    # writetofile(df, 'ssd-test-dev', 'spark/output', filename, 'parquet')
+    # Summary Consignee/Weight/Year Write Out
+    writetofile(spDFSumConsigneeWeight, 'ssd-test-dev', 'spark/sumconsigneeweight', filename, 'parquet')
 
     # End Time
     nEndTime = time.time()  # Time start
     print('Lines Processed: {}'.format(linesProcessed), file=sys.stdout)
     print('End time: %d seconds (epoch)' % (nEndTime), file=sys.stdout)
     print('Time elapsed: %d seconds' % ((nEndTime - nStartTime)), file=sys.stdout)
+
+    # STOP SPARK
     spark.stop()

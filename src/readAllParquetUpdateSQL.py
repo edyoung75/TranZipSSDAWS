@@ -1,6 +1,6 @@
 '''
 Insight Data Engineering Project
-Version 0.0.01
+Version 0.0.5
 
 Contact:
 Edmund Young
@@ -9,18 +9,12 @@ dryoung@solidstate.dev
 Purpose:
 Reads the parquet files and updates the data warehouse
 
-Columns:
-
-CSV output
 
 '''
-
+# IMPORTS:
 import pandas as pd
-import pyarrow.parquet as pq
 import awswrangler as wr
-import psycopg2
 import sqlalchemy
-# import s3fs
 import special.getDataContent as gdc
 import sys
 import time
@@ -36,67 +30,63 @@ username, password, port, host = gdc.psqlDataContent()
 dbase = 'testamsdb'
 
 # File list to parse and process into the PSQL DB
-#fileLoc = 's3://ssd-test-dev/spark/header/2018'
 fileHeaderList = [
-    's3://ssd-test-dev/spark/header/2018',
-    's3://ssd-test-dev/spark/header/2019',
-    's3://ssd-test-dev/spark/header/2020'
+    's3://ssd-test-dev/spark/header/All'
 ]
 
 fileConsigneeList = [
-    's3://ssd-test-dev/spark/consignee/2018',
-    's3://ssd-test-dev/spark/consignee/2019',
-    's3://ssd-test-dev/spark/consignee/2020'
+    's3://ssd-test-dev/spark/consignee/All'
 ]
 
 fileCargoDescList = [
-    's3://ssd-test-dev/spark/cargodesc/2018',
-    's3://ssd-test-dev/spark/cargodesc/2019',
-    's3://ssd-test-dev/spark/cargodesc/2020'
+    's3://ssd-test-dev/spark/cargodesc/All'
 ]
 
 fileContainerList = [
-    's3://ssd-test-dev/spark/container/2018',
-    's3://ssd-test-dev/spark/container/2019',
-    's3://ssd-test-dev/spark/container/2020'
+    's3://ssd-test-dev/spark/container/All'
 ]
 
 fileHazmatList = [
-    's3://ssd-test-dev/spark/hazmat/2018',
-    's3://ssd-test-dev/spark/hazmat/2019',
-    's3://ssd-test-dev/spark/hazmat/2020'
+    's3://ssd-test-dev/spark/hazmat/All'
 ]
 
 fileHazmatClassList = [
-    's3://ssd-test-dev/spark/hazmatclass/2018',
-    's3://ssd-test-dev/spark/hazmatclass/2019',
-    's3://ssd-test-dev/spark/hazmatclass/2020'
+    's3://ssd-test-dev/spark/hazmatclass/All'
 ]
 
 fileMarksNumbersList = [
-    's3://ssd-test-dev/spark/marksnumbers/2018',
-    's3://ssd-test-dev/spark/marksnumbers/2019',
-    's3://ssd-test-dev/spark/marksnumbers/2020'
+    's3://ssd-test-dev/spark/marksnumbers/All'
 ]
 
 fileNotifyPartyList = [
-    's3://ssd-test-dev/spark/notifyparty/2018',
-    's3://ssd-test-dev/spark/notifyparty/2019',
-    's3://ssd-test-dev/spark/notifyparty/2020'
+    's3://ssd-test-dev/spark/notifyparty/All'
 ]
 
 fileShipperList = [
-    's3://ssd-test-dev/spark/shipper/2018',
-    's3://ssd-test-dev/spark/shipper/2019',
-    's3://ssd-test-dev/spark/shipper/2020'
+    's3://ssd-test-dev/spark/shipper/All'
 ]
 
 fileTariffList = [
-    's3://ssd-test-dev/spark/tariff/2018',
-    's3://ssd-test-dev/spark/tariff/2019',
-    's3://ssd-test-dev/spark/tariff/2020'
+    's3://ssd-test-dev/spark/tariff/All'
 ]
 
+filebillgenList = [
+    's3://ssd-test-dev/spark/billgen/All'
+]
+
+filesummonthweightList = [
+    's3://ssd-test-dev/spark/summonthweight/All'
+]
+
+filesumportweightList = [
+    's3://ssd-test-dev/spark/sumportweight/All'
+]
+
+filesumconsigneeweightList = [
+    's3://ssd-test-dev/spark/sumconsigneeweight/All'
+]
+
+# FUNCTIONS:
 def getParquetConcatenate(filelist):
     frames = []
     for file in filelist:
@@ -138,13 +128,21 @@ dfShipper = getParquetConcatenate(fileShipperList)
 psqlTableNameShipper = 'shipper'
 dfTariff = getParquetConcatenate(fileTariffList)
 psqlTableNameTariff = 'tariff'
+dfbillgen = getParquetConcatenate(filebillgenList)
+psqlTableNamebillgen = 'billgen'
+dfsummonthweight = getParquetConcatenate(filesummonthweightList)
+psqlTableNamesummonthweight = 'summonthweight'
+dfsumportweight = getParquetConcatenate(filesumportweightList)
+psqlTableNamesumportweight = 'sumportweight'
+dfsumconsigneeweight = getParquetConcatenate(filesumconsigneeweightList)
+psqlTableNamesumconsigneeweight = 'sumconsigneeweight'
 
-
+# Create Connections
 uri = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(username,password,host,port,dbase)
 alchemyEngine = sqlalchemy.create_engine(uri, pool_recycle=60)
 psqlConnection = alchemyEngine.connect()
 
-
+# Try to upload everything
 try:
     dfHeader.to_sql(psqlTableNameHeader, psqlConnection, if_exists='replace')
     dfConsignee.to_sql(psqlTableNameConsignee,psqlConnection, if_exists='replace')
@@ -156,6 +154,10 @@ try:
     dfNotifyParty.to_sql(psqlTableNameNotifyParty, psqlConnection, if_exists='replace')
     dfShipper.to_sql(psqlTableNameShipper, psqlConnection, if_exists='replace')
     dfTariff.to_sql(psqlTableNameTariff, psqlConnection, if_exists='replace')
+    dfbillgen.to_sql(psqlTableNamebillgen, psqlConnection, if_exists='replace')
+    dfsummonthweight.to_sql(psqlTableNamesummonthweight, psqlConnection, if_exists='replace')
+    dfsumportweight.to_sql(psqlTableNamesumportweight, psqlConnection, if_exists='replace')
+    dfsumconsigneeweight.to_sql(psqlTableNamesumconsigneeweight, psqlConnection, if_exists='replace')
 except ValueError as ve:
     print(ve)
 except Exception as ex:
@@ -171,6 +173,10 @@ else:
     print("PostgreSQL Table %s has been created successfully." % psqlTableNameNotifyParty)
     print("PostgreSQL Table %s has been created successfully." % psqlTableNameShipper)
     print("PostgreSQL Table %s has been created successfully." % psqlTableNameTariff)
+    print("PostgreSQL Table %s has been created successfully." % psqlTableNamebillgen)
+    print("PostgreSQL Table %s has been created successfully." % psqlTableNamesummonthweight)
+    print("PostgreSQL Table %s has been created successfully." % psqlTableNamesumportweight)
+    print("PostgreSQL Table %s has been created successfully." % psqlTableNamesumconsigneeweight)
 finally:
     psqlConnection.close()
 
