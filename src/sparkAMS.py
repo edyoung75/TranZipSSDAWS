@@ -1,6 +1,6 @@
 '''
 Insight Data Engineering Project
-Version 0.0.5
+Version 0.0.6
 
 Contact:
 Edmund Young
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         StructField('description_sequence_number', StringType(), True),
         StructField('harmonized_number', StringType(), True),
         StructField('harmonized_value', StringType(), True),
-        StructField('harmonized_weight', StringType(), True),
+        StructField('harmonized_weight', IntegerType(), True),
         StructField('harmonized_weight_unit', StringType(), True)
     ])
 
@@ -392,7 +392,6 @@ if __name__ == "__main__":
 
     # DATA CLEANUP:
     # Header Clean Up
-    lineLength = spDFHeader.count()
     spDFHeader = spDFHeader.withColumn('weight',
                                        sqlF.when(spDFHeader['weight_unit'] == 'Pounds',
                                                 lbstokg(spDFHeader['weight'])).otherwise(spDFHeader['weight'])
@@ -419,7 +418,6 @@ if __name__ == "__main__":
                                        sqlF.datediff(spDFHeader['actual_arrival_date'],
                                                 spDFHeader['estimated_arrival_date'])
                                        )
-    lineLength = spDFHeader.count()
 
     # Consignee Clean Up
     spDFConsignee = spDFConsignee.withColumn('country_code',
@@ -435,10 +433,20 @@ if __name__ == "__main__":
                                          sqlF.to_date('run_date', 'yyyy-MM-dd').cast(DateType())
                                          )
 
+    # Tariff Clean Up
+    spDFTariff = spDFTariff.withColumn('harmonized_weight',
+                                       sqlF.when(spDFTariff['harmonized_weight_unit'] == 'Pounds',
+                                                 lbstokg(spDFTariff['harmonized_weight'])).otherwise(spDFTariff['harmonized_weight'])
+                                       )
+    spDFTariff = spDFTariff.withColumn('harmonized_weight_unit',
+                                       sqlF.when(spDFTariff['harmonized_weight_unit'] == 'Pounds',
+                                                 'Kilograms').otherwise(spDFTariff['harmonized_weight_unit'])
+                                       )
+
     # SUMMARIZE DATA:
     # Summarize Month/Weight
     spDFSumMonthWeight = spDFHeader.groupby(
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
@@ -449,8 +457,8 @@ if __name__ == "__main__":
 
     # Summarize Port/Weight
     spDFSumPortWeight = spDFHeader.groupby(
-        'place_of_receipt',
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+        'foreign_port_of_lading',
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
@@ -474,10 +482,10 @@ if __name__ == "__main__":
     # Summarize Consignee/Weight
     spDFSumConsigneeWeight = spDFHeaderConsigneeCargoDescShipper.groupby(
         'consignee_name',
-        'place_of_receipt',
+        'foreign_port_of_lading',
         'notify_party_name',
         'description_text',
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('month')
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
@@ -488,7 +496,6 @@ if __name__ == "__main__":
 
     # WRITE OUT FILES
     # Header Write Out
-    # print('Writing the header files... {}'.format(lineLength))
     spDFHeader = spDFHeader.filter(sqlF.col('identifier').isNotNull())
     spDFHeader.coalesce(1)
     writetofile(spDFHeader, 'ssd-test-dev', 'spark/header', filename, 'parquet')
