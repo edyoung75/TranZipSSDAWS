@@ -1,6 +1,6 @@
 '''
 Insight Data Engineering Project
-Version 0.0.6
+Version 0.0.12
 
 Contact:
 Edmund Young
@@ -442,30 +442,31 @@ if __name__ == "__main__":
                                        sqlF.when(spDFTariff['harmonized_weight_unit'] == 'Pounds',
                                                  'Kilograms').otherwise(spDFTariff['harmonized_weight_unit'])
                                        )
+    #spDFTariff.show(200)
 
     # SUMMARIZE DATA:
     # Summarize Month/Weight
     spDFSumMonthWeight = spDFHeader.groupby(
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('arrival_date_year_month')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
         sqlF.max('weight').alias('max_weight'),
         sqlF.min('weight').alias('min_weight')
     )
-    spDFSumMonthWeight.show()
+    #spDFSumMonthWeight.show()
 
     # Summarize Port/Weight
     spDFSumPortWeight = spDFHeader.groupby(
         'foreign_port_of_lading',
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('arrival_date_year_month')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
         sqlF.max('weight').alias('max_weight'),
         sqlF.min('weight').alias('min_weight')
     )
-    spDFSumPortWeight.show()
+    #spDFSumPortWeight.show()
 
     # Join Header with Consignee, Cargo Description, Shipper
     spDFHeaderConsignee = spDFHeader.join(spDFConsignee,
@@ -485,7 +486,7 @@ if __name__ == "__main__":
         'foreign_port_of_lading',
         'notify_party_name',
         'description_text',
-        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('date')
+        sqlF.date_format('actual_arrival_date', 'yyyy-MM').alias('arrival_date_year_month')
     ).agg(
         sqlF.sum('weight').alias('sum_weight'),
         sqlF.mean('weight').alias('average_weight'),
@@ -497,7 +498,7 @@ if __name__ == "__main__":
     # WRITE OUT FILES
     # Header Write Out
     spDFHeader = spDFHeader.filter(sqlF.col('identifier').isNotNull())
-    spDFHeader.coalesce(1)
+    #spDFHeader.coalesce(1)
     writetofile(spDFHeader, 'ssd-test-dev', 'spark/header', filename, 'parquet')
 
     # Consignee Write Out
@@ -506,47 +507,47 @@ if __name__ == "__main__":
 
     # Cargo Write Out
     spDFCargoDesc = spDFCargoDesc.filter(sqlF.col('identifier').isNotNull())
-    spDFCargoDesc.coalesce(1)
+    #spDFCargoDesc.coalesce(1)
     writetofile(spDFCargoDesc, 'ssd-test-dev', 'spark/cargodesc', filename, 'parquet')
 
     # Container Write Out
     spDFContainer = spDFContainer.filter(sqlF.col('identifier').isNotNull())
-    spDFContainer.coalesce(1)
+    #spDFContainer.coalesce(1)
     writetofile(spDFContainer, 'ssd-test-dev', 'spark/container', filename, 'parquet')
 
     # Hazmat Write Out
     spDFHazmat = spDFHazmat.filter(sqlF.col('identifier').isNotNull())
-    spDFHazmat.coalesce(1)
+    #spDFHazmat.coalesce(1)
     writetofile(spDFHazmat, 'ssd-test-dev', 'spark/hazmat', filename, 'parquet')
 
     # Hazmat Class Write OUt
     spDFHazmatClass = spDFHazmatClass.filter(sqlF.col('identifier').isNotNull())
-    spDFHazmatClass.coalesce(1)
+    #spDFHazmatClass.coalesce(1)
     writetofile(spDFHazmatClass, 'ssd-test-dev', 'spark/hazmatclass', filename, 'parquet')
 
     # Marks Numbers on Container Write Out
     spDFMarksNumbers = spDFMarksNumbers.filter(sqlF.col('identifier').isNotNull())
-    spDFMarksNumbers.coalesce(1)
+    #spDFMarksNumbers.coalesce(1)
     writetofile(spDFMarksNumbers, 'ssd-test-dev', 'spark/marksnumbers', filename, 'parquet')
 
     # Notify Party Write Out
     spDFNotifyParty = spDFNotifyParty.filter(sqlF.col('identifier').isNotNull())
-    spDFNotifyParty.coalesce(1)
+    #spDFNotifyParty.coalesce(1)
     writetofile(spDFNotifyParty, 'ssd-test-dev', 'spark/notifyparty', filename, 'parquet')
 
     # Shipper Write Out
     spDFShipper = spDFShipper.filter(sqlF.col('identifier').isNotNull())
-    spDFShipper.coalesce(1)
+    #spDFShipper.coalesce(1)
     writetofile(spDFShipper, 'ssd-test-dev', 'spark/shipper', filename, 'parquet')
 
     # Tariff Write Out
     spDFTariff = spDFTariff.filter(sqlF.col('identifier').isNotNull())
-    spDFTariff.coalesce(1)
+    #spDFTariff.coalesce(1)
     writetofile(spDFTariff, 'ssd-test-dev', 'spark/tariff', filename, 'parquet')
 
     # Bill Generated Write Out
     spDFBillGen = spDFBillGen.filter(sqlF.col('identifier').isNotNull())
-    spDFBillGen.coalesce(1)
+    #spDFBillGen.coalesce(1)
     writetofile(spDFBillGen, 'ssd-test-dev', 'spark/billgen', filename, 'parquet')
 
     # Summary Weight/Month Write Out

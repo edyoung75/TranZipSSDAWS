@@ -1,6 +1,6 @@
 '''
 Insight Data Engineering Project
-Version 0.0.6
+Version 0.0.12
 
 Contact:
 Edmund Young
