@@ -1,10 +1,25 @@
-# Insight Data Engineering Project - TranZip
+![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)
+![Spark](https://img.shields.io/badge/Spark-2.4.5-green)
+
+# TranZip 
 TranZip is a lead generation tool that helps Logistic Companies find businesses that ship internationally by looking at 
 the types and quantity of packages these businesses are shipping. TranZip uses the US Customs and Border Protections 
 Automated Manifest System (AMS) to query the most relevant information to gain business intelligence about business' 
 shipping activity. 
 
-## Files Necessary to run the scripts:
+# Table of Contents
+1. [Files](README.md#Files)
+2. [Pipeline](README.md#Pipeline)
+3. [Imports](README.md#Imports)
+2. [Purpose](README.md#Purpose)
+2. [Usage](README.md#Usage)
+2. [Input](README.md#Input)
+2. [Output](README.md#Output)
+2. [Known Issues](README.md#Known-Issues)
+2. [Updates](README.md#Updates)
+2. [Contact](README.md#Contact)
+
+# Files
 `sparkSubmitAMS.py` - main python script for passing the primary parsing script to AWS EMR
 
 `sparkAMS.py` - primary python script that gets passed to AWS EMR by `sparkSubmitAMS.py`
@@ -12,16 +27,27 @@ shipping activity.
 `readAllParquetUpdateSQL.py` - python script to update PostGreSQL database and create new tables as necessary.
 
 Input files are the 33 AMS files.
+# Pipeline
+![TranZip Pipeline](other/pipeline.png)
+# Repository Structure
+<pre>
+├── other               Extra Resources
+└── src                 Python Scripts for Spark-Submit and moving data to PostGreSQL
+README.md               README.md File
+</pre>
 
-## Imports (not built into Python 3.7):
+## Imports
 boto3, pyspark, sqlalchemy, awswrangler 
+<installation instructions for imports>
+<push to dev instead>
+<git install look at ronaldo's git>
 
 cryptography (encryption was used for SQL username and password however the scripts or encrypted files were not uploaded to GitHub, instead you may hard code the necessary information into `sparkAMS.py`)
 
-## Purpose:
+## Purpose
 Process and clean
 
-### Usage:
+### Usage
 The AMS file locations are set in `sparkSubmitAMS.py` with 
 
 Command Prompt:
@@ -38,20 +64,22 @@ Command Prompt:
 Syntax:
 `python3.7 ./src/readAllParquetUpdateSQL.py`
 
-### Input:
+### Input
 11 AMS files for each year available (33 files in total).
 
-### Output:
+### Output
 The initial processing and cleaning of the data will produce Parquet files
 
 File `readAllParquetUpdateSQL.py` will grab the Parquet files and update the PostGreSQL database. 
 
 
-### Known Issues:
+### Known Issues
 - Additional cleaning of the dataset is necessary. 
 - Many links are currently hard coded for the MVP
 
-### Update:
+### Updates
+Version 0.0.12 - 22 Jun 2020
+- Updated README.md
 
 Version 0.0.12 - 22 Jun 2020
 - Added text to README.md
@@ -81,6 +109,7 @@ Version 0.0.03 - 8 Jun 2020
 Version 0.0.1 - 4 Jun 2020
 - Initial Commit
 
-## Contact:
+## Contact
 Edmund Young
+
 dryoung@solidstate.dev
