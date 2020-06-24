@@ -78,7 +78,7 @@ File `readAllParquetUpdateSQL.py` will grab the Parquet files and update the Pos
 - Many links are currently hard coded for the MVP
 
 ### Updates
-Version 0.0.12 - 22 Jun 2020
+Version 0.0.15 - 24 Jun 2020
 - Updated README.md
 
 Version 0.0.12 - 22 Jun 2020
