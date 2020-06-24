@@ -18,6 +18,7 @@ import boto3
 import special.getDataContent as gdc
 
 # Get PSQL Information
+# Set these variables to the PostGreSQL database of your choice
 username, password, port, host = gdc.psqlDataContent()
 
 # FUNCTIONS:
