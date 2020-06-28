@@ -14,7 +14,7 @@ PySpark script to process data
 
 from __future__ import print_function
 import sys
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, SQLContext
 from pyspark.sql.types import StructField, StructType, StringType, IntegerType, DateType
 import pyspark.sql.functions as sqlF
 import boto3
@@ -390,6 +390,8 @@ if __name__ == "__main__":
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocBillGen, lineLength))
 
+
+
     # DATA CLEANUP:
     # Header Clean Up
     spDFHeader = spDFHeader.withColumn('weight',
@@ -497,58 +499,25 @@ if __name__ == "__main__":
 
     # WRITE OUT FILES
     # Header Write Out
-    spDFHeader = spDFHeader.filter(sqlF.col('identifier').isNotNull())
-    #spDFHeader.coalesce(1)
-    writetofile(spDFHeader, 'ssd-test-dev', 'spark/header', filename, 'parquet')
 
-    # Consignee Write Out
-    spDFConsignee = spDFConsignee.filter(sqlF.col('identifier').isNotNull())
-    writetofile(spDFConsignee, 'ssd-test-dev', 'spark/consignee', filename, 'parquet')
-
-    # Cargo Write Out
-    spDFCargoDesc = spDFCargoDesc.filter(sqlF.col('identifier').isNotNull())
-    #spDFCargoDesc.coalesce(1)
-    writetofile(spDFCargoDesc, 'ssd-test-dev', 'spark/cargodesc', filename, 'parquet')
-
-    # Container Write Out
-    spDFContainer = spDFContainer.filter(sqlF.col('identifier').isNotNull())
-    #spDFContainer.coalesce(1)
-    writetofile(spDFContainer, 'ssd-test-dev', 'spark/container', filename, 'parquet')
-
-    # Hazmat Write Out
-    spDFHazmat = spDFHazmat.filter(sqlF.col('identifier').isNotNull())
-    #spDFHazmat.coalesce(1)
-    writetofile(spDFHazmat, 'ssd-test-dev', 'spark/hazmat', filename, 'parquet')
-
-    # Hazmat Class Write OUt
-    spDFHazmatClass = spDFHazmatClass.filter(sqlF.col('identifier').isNotNull())
-    #spDFHazmatClass.coalesce(1)
-    writetofile(spDFHazmatClass, 'ssd-test-dev', 'spark/hazmatclass', filename, 'parquet')
-
-    # Marks Numbers on Container Write Out
-    spDFMarksNumbers = spDFMarksNumbers.filter(sqlF.col('identifier').isNotNull())
-    #spDFMarksNumbers.coalesce(1)
-    writetofile(spDFMarksNumbers, 'ssd-test-dev', 'spark/marksnumbers', filename, 'parquet')
-
-    # Notify Party Write Out
-    spDFNotifyParty = spDFNotifyParty.filter(sqlF.col('identifier').isNotNull())
-    #spDFNotifyParty.coalesce(1)
-    writetofile(spDFNotifyParty, 'ssd-test-dev', 'spark/notifyparty', filename, 'parquet')
-
-    # Shipper Write Out
-    spDFShipper = spDFShipper.filter(sqlF.col('identifier').isNotNull())
-    #spDFShipper.coalesce(1)
-    writetofile(spDFShipper, 'ssd-test-dev', 'spark/shipper', filename, 'parquet')
-
-    # Tariff Write Out
-    spDFTariff = spDFTariff.filter(sqlF.col('identifier').isNotNull())
-    #spDFTariff.coalesce(1)
-    writetofile(spDFTariff, 'ssd-test-dev', 'spark/tariff', filename, 'parquet')
-
-    # Bill Generated Write Out
-    spDFBillGen = spDFBillGen.filter(sqlF.col('identifier').isNotNull())
-    #spDFBillGen.coalesce(1)
-    writetofile(spDFBillGen, 'ssd-test-dev', 'spark/billgen', filename, 'parquet')
+    writeDict = {
+        'header': [spDFHeader, 'parquet'],
+        'consignee': [spDFConsignee, 'parquet'],
+        'cargodesc': [spDFCargoDesc, 'parquet'],
+        'container': [spDFContainer, 'parquet'],
+        'hazmat': [spDFHazmat, 'parquet'],
+        'hazmatclass': [spDFHazmatClass, 'parquet'],
+        'marksnumbers': [spDFMarksNumbers, 'parquet'],
+        'notifyparty': [spDFNotifyParty, 'parquet'],
+        'shipper': [spDFShipper, 'parquet'],
+        'tariff': [spDFTariff, 'parquet'],
+        'billgen': [spDFBillGen, 'parquet']
+    }
+    print('new version')
+    for foldername, writeoutlist in writeDict.items():
+        writeoutlist[0] = writeoutlist[0].filter(sqlF.col('identifier').isNotNull())
+        # spDFHeader.coalesce(1)
+        writetofile(writeoutlist[0], 'ssd-test-dev', 'spark/'+foldername, filename, writeoutlist[1])
 
     # Summary Weight/Month Write Out
     writetofile(spDFSumMonthWeight, 'ssd-test-dev', 'spark/summonthweight', filename, 'parquet')
