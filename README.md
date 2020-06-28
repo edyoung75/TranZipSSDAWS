@@ -82,7 +82,7 @@ File `readAllParquetUpdateSQL.py` will grab the Parquet files and update the Pos
 - Many links are currently hard coded for the MVP
 
 ### Updates
-Version 0.0.17 - 24 Jun 2020
+Version 0.0.17 - 28 Jun 2020
 - Updated README.md with Demo link
 - Updated sparkAMS.py 
 

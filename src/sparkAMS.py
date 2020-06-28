@@ -8,8 +8,6 @@ dryoung@solidstate.dev
 
 Purpose:
 PySpark script to process data
-
-
 '''
 
 from __future__ import print_function
