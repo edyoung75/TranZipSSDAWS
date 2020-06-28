@@ -38,8 +38,7 @@ README.md               README.md File
 </pre>
 
 ## Demo
-[Tableau Demo Link][Tableau-Demo-Link]
-[Tableau-Demo-Link]:https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard
+<a link="https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard">Tableau Demo Link</a>
 
 ## Imports
 boto3, pyspark, sqlalchemy, awswrangler 
