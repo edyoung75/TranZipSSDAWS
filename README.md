@@ -10,6 +10,7 @@ shipping activity.
 # Table of Contents
 1. [Files](README.md#Files)
 2. [Pipeline](README.md#Pipeline)
+2. [Demo](README.md#Demo)
 3. [Imports](README.md#Imports)
 2. [Purpose](README.md#Purpose)
 2. [Usage](README.md#Usage)
@@ -19,7 +20,7 @@ shipping activity.
 2. [Updates](README.md#Updates)
 2. [Contact](README.md#Contact)
 
-# Files
+## Files
 `sparkSubmitAMS.py` - main python script for passing the primary parsing script to AWS EMR
 
 `sparkAMS.py` - primary python script that gets passed to AWS EMR by `sparkSubmitAMS.py`
@@ -27,7 +28,7 @@ shipping activity.
 `readAllParquetUpdateSQL.py` - python script to update PostGreSQL database and create new tables as necessary.
 
 Input files are the 33 AMS files.
-# Pipeline
+## Pipeline
 ![TranZip Pipeline](other/pipeline.png)
 # Repository Structure
 <pre>
@@ -35,6 +36,9 @@ Input files are the 33 AMS files.
 └── src                 Python Scripts for Spark-Submit and moving data to PostGreSQL
 README.md               README.md File
 </pre>
+
+## Demo
+![Tableau Demo Link](https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard)
 
 ## Imports
 boto3, pyspark, sqlalchemy, awswrangler 
@@ -78,6 +82,10 @@ File `readAllParquetUpdateSQL.py` will grab the Parquet files and update the Pos
 - Many links are currently hard coded for the MVP
 
 ### Updates
+Version 0.0.17 - 24 Jun 2020
+- Updated README.md with Demo link
+- Updated sparkAMS.py 
+
 Version 0.0.15 - 24 Jun 2020
 - Updated README.md
 

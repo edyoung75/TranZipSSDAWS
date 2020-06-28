@@ -1,6 +1,6 @@
 '''
 Insight Data Engineering Project
-Version 0.0.12
+Version 0.0.17
 
 Contact:
 Edmund Young
@@ -14,7 +14,7 @@ PySpark script to process data
 
 from __future__ import print_function
 import sys
-from pyspark.sql import SparkSession, SQLContext
+from pyspark.sql import SparkSession
 from pyspark.sql.types import StructField, StructType, StringType, IntegerType, DateType
 import pyspark.sql.functions as sqlF
 import boto3
@@ -390,8 +390,6 @@ if __name__ == "__main__":
     linesProcessed += lineLength
     print('File {} has {} rows'.format(csvLocBillGen, lineLength))
 
-
-
     # DATA CLEANUP:
     # Header Clean Up
     spDFHeader = spDFHeader.withColumn('weight',
@@ -499,7 +497,6 @@ if __name__ == "__main__":
 
     # WRITE OUT FILES
     # Header Write Out
-
     writeDict = {
         'header': [spDFHeader, 'parquet'],
         'consignee': [spDFConsignee, 'parquet'],
@@ -517,7 +514,7 @@ if __name__ == "__main__":
     for foldername, writeoutlist in writeDict.items():
         writeoutlist[0] = writeoutlist[0].filter(sqlF.col('identifier').isNotNull())
         # spDFHeader.coalesce(1)
-        writetofile(writeoutlist[0], 'ssd-test-dev', 'spark/'+foldername, filename, writeoutlist[1])
+        writetofile(writeoutlist[0], 'ssd-test-dev', 'spark/' + foldername, filename, writeoutlist[1])
 
     # Summary Weight/Month Write Out
     writetofile(spDFSumMonthWeight, 'ssd-test-dev', 'spark/summonthweight', filename, 'parquet')
