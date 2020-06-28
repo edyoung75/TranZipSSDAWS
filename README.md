@@ -38,7 +38,8 @@ README.md               README.md File
 </pre>
 
 ## Demo
-![Tableau Demo Link](https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard)
+[Tableau Demo Link][Tableau-Demo-Link]
+[Tableau-Demo-Link]:https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard
 
 ## Imports
 boto3, pyspark, sqlalchemy, awswrangler 
@@ -82,8 +83,10 @@ File `readAllParquetUpdateSQL.py` will grab the Parquet files and update the Pos
 - Many links are currently hard coded for the MVP
 
 ### Updates
-Version 0.0.17 - 28 Jun 2020
+Version 0.0.18 - 28 Jun 2020
 - Updated README.md with Demo link
+
+Version 0.0.17 - 28 Jun 2020
 - Updated sparkAMS.py 
 
 Version 0.0.15 - 24 Jun 2020
