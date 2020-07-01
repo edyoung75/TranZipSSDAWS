@@ -41,13 +41,26 @@ README.md               README.md File
 [Tableau Demo Link](https://public.tableau.com/profile/ed.young7938#!/vizhome/AMS2020B/BusinessesDashboard)
 
 ## Imports
-boto3, pyspark, sqlalchemy, awswrangler 
-<installation instructions for imports>
-<push to dev instead>
-<git install look at ronaldo's git>
-
+boto3
+<pre>
+pip install boto3
+</pre>
+pyspark
+<pre>
+pip install pyspark
+</pre>
+sqlalchemy
+<pre>
+pip install SQLAlchemy
+</pre>
+awswrangler 
+<pre>
+pip install awswrangler
+</pre>
 cryptography (encryption was used for SQL username and password however the scripts or encrypted files were not uploaded to GitHub, instead you may hard code the necessary information into `sparkAMS.py`)
-
+<pre>
+pip install cryptography
+</pre>
 ## Purpose
 Process and clean
 
